@@ -4,6 +4,8 @@ sentence-transformers>=2.7
 faiss-gpu>=1.7
 tqdm
 pyarrow>=12
+modelscope>=1.11
+huggingface-hub>=0.19
 
 # 本地（rag_cli.py）
 faiss-cpu>=1.7

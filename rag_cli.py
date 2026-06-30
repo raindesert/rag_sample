@@ -1,5 +1,6 @@
 """本地 CLI：加载索引、检索、流式生成、多轮 REPL。"""
 
+import json
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -73,6 +74,36 @@ def retrieve(res: Resources, query: str) -> list[dict]:
         c["rerank_score"] = float(rs)
     candidates.sort(key=lambda c: c["rerank_score"], reverse=True)
     return candidates[: res.cfg.topk_rerank]
+
+
+def stream_answer(cfg: Config, messages: list[dict]) -> str:
+    """调用 llama.cpp OpenAI 兼容 chat/completions 流式接口，逐 token 打印。"""
+    url = f"{cfg.llama_url.rstrip('/')}/v1/chat/completions"
+    payload = {
+        "model": cfg.llama_model,
+        "messages": messages,
+        "stream": True,
+        "temperature": 0.7,
+    }
+    full = ""
+    with requests.post(url, json=payload, stream=True, timeout=300) as r:
+        r.raise_for_status()
+        for line in r.iter_lines(decode_unicode=True):
+            if not line or not line.startswith("data:"):
+                continue
+            data = line[len("data:"):].strip()
+            if data == "[DONE]":
+                break
+            try:
+                obj = json.loads(data)
+            except json.JSONDecodeError:
+                continue
+            delta = obj.get("choices", [{}])[0].get("delta", {}).get("content")
+            if delta:
+                print(delta, end="", flush=True)
+                full += delta
+    print()  # 末尾换行
+    return full
 
 
 def main() -> int:

@@ -8,3 +8,8 @@ venv/
 .env
 .idea/
 .vscode/
+
+# Wikipedia source data (384 MB) and the re-encoded fixed file (387 MB).
+# Both are user-supplied, not part of the repo.
+wikipedia-zh-cn.json
+wikipedia-zh-cn.fixed.json

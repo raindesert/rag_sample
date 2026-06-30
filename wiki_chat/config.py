@@ -2,16 +2,16 @@
 
 import argparse
 from dataclasses import dataclass, field
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 
 
 @dataclass
 class Config:
     """所有可配置项及默认值。"""
 
-    index_path: Path = field(default_factory=lambda: PurePosixPath("data/wiki.index"))
-    chunks_path: Path = field(default_factory=lambda: PurePosixPath("data/chunks.parquet"))
-    meta_path: Path = field(default_factory=lambda: PurePosixPath("data/build_meta.json"))
+    index_path: Path = field(default_factory=lambda: Path("data/wiki.index"))
+    chunks_path: Path = field(default_factory=lambda: Path("data/chunks.parquet"))
+    meta_path: Path = field(default_factory=lambda: Path("data/build_meta.json"))
     embedding_model: str = "BAAI/bge-small-zh-v1.5"
     rerank_model: str = "BAAI/bge-reranker-base"
     llama_url: str = "http://localhost:8080"
@@ -21,12 +21,10 @@ class Config:
     history_turns: int = 3
 
     def __post_init__(self):
-        if not isinstance(self.index_path, (Path, PurePosixPath)):
-            self.index_path = Path(self.index_path)
-        if not isinstance(self.chunks_path, (Path, PurePosixPath)):
-            self.chunks_path = Path(self.chunks_path)
-        if not isinstance(self.meta_path, (Path, PurePosixPath)):
-            self.meta_path = Path(self.meta_path)
+        # Always coerce to Path (so .exists() works on all platforms)
+        self.index_path = Path(self.index_path)
+        self.chunks_path = Path(self.chunks_path)
+        self.meta_path = Path(self.meta_path)
         if not self.chunks_path.is_absolute():
             self.chunks_path = self.index_path.parent / self.chunks_path.name
         if not self.meta_path.is_absolute():

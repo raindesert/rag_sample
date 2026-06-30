@@ -1,5 +1,5 @@
 import sys
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 
 from wiki_chat.config import Config, parse_args
 
@@ -35,6 +35,15 @@ def test_parse_args_overrides():
 
 
 def test_chunks_and_meta_resolve_relative_to_index_dir():
-    cfg = Config(index_path=PurePosixPath("/tmp/x/wiki.index"))
-    assert str(cfg.chunks_path).endswith("/tmp/x/chunks.parquet")
-    assert str(cfg.meta_path).endswith("/tmp/x/build_meta.json")
+    cfg = Config(index_path=Path("/tmp/x/wiki.index"))
+    # Compare Path objects, not str (WindowsPath vs PosixPath stringification differs)
+    assert cfg.chunks_path == Path("/tmp/x/chunks.parquet")
+    assert cfg.meta_path == Path("/tmp/x/build_meta.json")
+
+
+def test_config_paths_have_exists_method():
+    """PurePosixPath has no .exists(); ensure Config stores real Path objects."""
+    cfg = Config()
+    assert hasattr(cfg.index_path, "exists")
+    assert hasattr(cfg.chunks_path, "exists")
+    assert hasattr(cfg.meta_path, "exists")

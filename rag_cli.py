@@ -114,8 +114,74 @@ def main() -> int:
         print(f"[错误] {e}", file=sys.stderr)
         return 1
 
-    print(f"[*] 索引 {res.index.ntotal} chunks，准备好（输入 /quit 退出，/help 查看命令）")
-    # 完整 REPL 在 Task 9 实现
+    print(f"[*] 索引 {res.index.ntotal} chunks，准备好。输入 /quit 退出，/help 查看命令。")
+
+    history: list[dict] = []
+    max_history = cfg.history_turns * 2
+
+    while True:
+        try:
+            q = input("\n> ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            break
+        if not q:
+            continue
+        if q in ("/quit", "exit", "/exit"):
+            break
+        if q == "/clear":
+            history = []
+            print("[已清空历史]")
+            continue
+        if q == "/help":
+            print("命令：/quit 退出 /clear 清空历史 /stats 统计 /show <n> 显示第 n 个引用")
+            continue
+        if q.startswith("/show "):
+            try:
+                n = int(q.split()[1]) - 1
+                item = res.last_retrieved[n]
+                print(f"[{n+1}] 《{item['doc_title']}》\n{item['chunk_text']}")
+            except (ValueError, IndexError):
+                print("[错误] 用法: /show <编号>")
+            continue
+        if q == "/stats":
+            print(f"已提问 {res.ask_count} 次")
+            continue
+
+        # 主流程：检索 + 生成
+        try:
+            retrieved = retrieve(res, q)
+        except Exception as e:
+            print(f"[检索失败] {e}", file=sys.stderr)
+            continue
+
+        if not retrieved:
+            print("[未找到相关内容]")
+            continue
+
+        print()
+        for i, c in enumerate(retrieved, start=1):
+            print(f"[{i}] 《{c['doc_title']}》 (rerank: {c['rerank_score']:.3f})")
+
+        messages = build_messages(q, retrieved, history=history)
+        try:
+            answer = stream_answer(cfg, messages)
+        except requests.RequestException as e:
+            print(f"\n[生成失败] {e}", file=sys.stderr)
+            continue
+
+        titles = "、".join(f"[{i+1}] {c['doc_title']}" for i, c in enumerate(retrieved))
+        print(f"\n引用：{titles}")
+
+        history.append({"role": "user", "content": q})
+        history.append({"role": "assistant", "content": answer})
+        if len(history) > max_history:
+            history = history[-max_history:]
+
+        res.ask_count += 1
+        res.last_retrieved = retrieved
+
+    print("再见。")
     return 0
 
 

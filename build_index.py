@@ -5,11 +5,14 @@
 """
 
 import argparse
+import datetime as _dt
 import json
 import sys
 import time
 from pathlib import Path
 
+import faiss
+import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 import tqdm
@@ -102,8 +105,39 @@ def main() -> int:
 
 
 def save(chunks: list[dict], vecs, args: argparse.Namespace, out_dir: Path) -> None:
-    """Save FAISS index + chunks parquet + build_meta.json. Implemented in Task 3."""
-    raise NotImplementedError("save() implemented in Task 3")
+    """Save FAISS index + chunks parquet + build_meta.json."""
+    arr = np.asarray(vecs, dtype="float32")
+    dim = arr.shape[1]
+
+    # FAISS IndexFlatIP：向量已 normalize_embeddings=True，内积=余弦
+    index = faiss.IndexFlatIP(dim)
+    index.add(arr)
+
+    index_path = out_dir / "wiki.index"
+    faiss.write_index(index, str(index_path))
+
+    # chunks.parquet
+    table = pa.Table.from_pylist(chunks)
+    pq.write_table(table, out_dir / "chunks.parquet")
+
+    # build_meta.json
+    meta = {
+        "embedding_model": args.embedding_model,
+        "dim": dim,
+        "chunk_size": args.chunk_size,
+        "chunk_overlap": args.chunk_overlap,
+        "title_prefix": True,
+        "index_type": "IndexFlatIP",
+        "total_chunks": len(chunks),
+        "total_docs": len({c["doc_id"] for c in chunks}),
+        "source_file": str(args.input),
+        "source_lines_kept": args.max_lines,
+        "created_at": _dt.datetime.utcnow().isoformat() + "Z",
+    }
+    (out_dir / "build_meta.json").write_text(
+        json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    print(f"      Saved: {index_path} ({index_path.stat().st_size / 1e6:.1f} MB)")
 
 
 if __name__ == "__main__":

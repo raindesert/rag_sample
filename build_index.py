@@ -5,7 +5,7 @@
 """
 
 import argparse
-import datetime as _dt
+import datetime
 import json
 import sys
 import time
@@ -132,7 +132,7 @@ def save(chunks: list[dict], vecs, args: argparse.Namespace, out_dir: Path) -> N
         "total_docs": len({c["doc_id"] for c in chunks}),
         "source_file": str(args.input),
         "source_lines_kept": args.max_lines,
-        "created_at": _dt.datetime.utcnow().isoformat() + "Z",
+        "created_at": datetime.datetime.now(datetime.UTC).isoformat().replace("+00:00", "Z"),
     }
     (out_dir / "build_meta.json").write_text(
         json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"

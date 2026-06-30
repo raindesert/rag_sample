@@ -3,10 +3,8 @@
 import json
 import sys
 from dataclasses import dataclass, field
-from pathlib import Path
 
 import faiss
-import numpy as np
 import pyarrow.parquet as pq
 import requests
 from sentence_transformers import CrossEncoder, SentenceTransformer
@@ -25,6 +23,11 @@ class Resources:
     # 运行时态（不是构造参数）
     ask_count: int = 0
     last_retrieved: list[dict] = field(default_factory=list)
+
+
+# rerank 分数低于此阈值的 chunk 直接丢弃，避免无关内容进 prompt。
+# spec §8：top-50 全低于阈值时 LLM 应答 "未找到相关信息"。
+RERANK_THRESHOLD = 0.3
 
 
 def load_resources(cfg: Config) -> Resources:
@@ -73,7 +76,9 @@ def retrieve(res: Resources, query: str) -> list[dict]:
     for c, rs in zip(candidates, rerank_scores):
         c["rerank_score"] = float(rs)
     candidates.sort(key=lambda c: c["rerank_score"], reverse=True)
-    return candidates[: res.cfg.topk_rerank]
+
+    kept = [c for c in candidates if c["rerank_score"] >= RERANK_THRESHOLD]
+    return kept[: res.cfg.topk_rerank]
 
 
 def stream_answer(cfg: Config, messages: list[dict]) -> str:

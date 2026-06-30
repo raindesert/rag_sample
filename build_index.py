@@ -36,7 +36,7 @@ def parse_args() -> argparse.Namespace:
 def read_jsonl(path: Path, max_lines: int) -> list[dict]:
     """流式读 JSONL，最多 max_lines 条。"""
     rows = []
-    with path.open("r", encoding="utf-8") as f:
+    with path.open("r", encoding="utf-8-sig") as f:
         for i, line in enumerate(f):
             if i >= max_lines:
                 break

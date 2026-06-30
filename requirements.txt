@@ -1,0 +1,14 @@
+# 远程（build_index.py）
+torch>=2.0
+sentence-transformers>=2.7
+faiss-gpu>=1.7
+tqdm
+pyarrow>=12
+
+# 本地（rag_cli.py）
+faiss-cpu>=1.7
+sentence-transformers>=2.7
+pyarrow>=12
+requests>=2.31
+tiktoken
+pytest>=7

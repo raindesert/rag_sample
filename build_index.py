@@ -7,7 +7,6 @@
 import argparse
 import datetime
 import json
-import os
 import sys
 import time
 from pathlib import Path
@@ -19,32 +18,7 @@ import pyarrow.parquet as pq
 import tqdm
 
 from wiki_chat.chunker import chunk_doc, chunk_id_for
-
-
-def _get_model_path(model_name: str, use_modelscope: bool) -> str:
-    """下载模型到本地并返回路径，支持 ModelScope 或 HuggingFace."""
-    cache_dir = os.environ.get("MODEL_CACHE", "./model_cache")
-
-    if use_modelscope:
-        try:
-            from modelscope import snapshot_download
-            cache = os.environ.get("MODELSCOPE_CACHE", cache_dir)
-            return snapshot_download(model_name, cache_dir=cache)
-        except ImportError:
-            print("WARNING: modelscope not installed, falling back to HuggingFace")
-
-    # HuggingFace 默认
-    from huggingface_hub import snapshot_download
-    cache = os.environ.get("HF_HOME", cache_dir)
-    return snapshot_download(model_name, cache_dir=cache)
-
-
-def _load_sentence_transformer(model_name: str, use_modelscope: bool):
-    """加载 SentenceTransformer 模型."""
-    from sentence_transformers import SentenceTransformer
-
-    local_path = _get_model_path(model_name, use_modelscope)
-    return SentenceTransformer(local_path)
+from wiki_chat.models import load_sentence_transformer
 
 
 def parse_args() -> argparse.Namespace:
@@ -56,7 +30,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--chunk-size", type=int, default=512)
     p.add_argument("--chunk-overlap", type=int, default=64)
     p.add_argument("--batch-size", type=int, default=64, help="Embedding batch size")
-    p.add_argument("--use-modelscope", action="store_true", help="Use ModelScope instead of HuggingFace")
+    p.add_argument("--from-modelscope", action="store_true", help="从 ModelScope 下载 embedding 模型（默认 HuggingFace）")
     return p.parse_args()
 
 
@@ -93,7 +67,7 @@ def chunk_all(docs: list[dict], size: int, overlap: int) -> list[dict]:
 
 def embed_all(chunks: list[dict], model_name: str, batch_size: int, use_modelscope: bool):
     """对所有 chunk 文本做 embedding，返回 numpy 数组。"""
-    model = _load_sentence_transformer(model_name, use_modelscope)
+    model = load_sentence_transformer(model_name, use_modelscope)
     texts = [c["chunk_text"] for c in chunks]
     vecs = model.encode(
         texts,

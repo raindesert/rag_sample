@@ -14,15 +14,13 @@
 
 ```bash
 pip install -r requirements.txt
-HF_ENDPOINT=https://hf-mirror.com python build_index.py \
-  --input wikipedia-zh-cn.fixed.json \
+python build_index.py \
+  --input wikipedia-zh-cn.json \
   --output-dir data \
   --max-lines 100000 \
-  --batch-size 128
+  --batch-size 128 \
+  --use-modelscope
 ```
-
-> ⚠️ 源数据文件 `wikipedia-zh-cn.json` 是损坏的 UTF-8（被错误地当作 Latin-1 重新标记）。先用 `python scripts/fix_encoding.py` 生成 `wikipedia-zh-cn.fixed.json`，再构建索引。
->
 > ⚠️ HuggingFace 在中国大陆访问受限，设置 `HF_ENDPOINT=https://hf-mirror.com` 用镜像。
 
 ### 2. 下载产物到本地

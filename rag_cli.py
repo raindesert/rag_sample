@@ -10,6 +10,7 @@ import requests
 from sentence_transformers import CrossEncoder, SentenceTransformer
 
 from wiki_chat.config import Config, parse_args
+from wiki_chat.models import load_sentence_transformer
 from wiki_chat.prompts import build_messages
 
 
@@ -39,8 +40,9 @@ def load_resources(cfg: Config) -> Resources:
         )
     index = faiss.read_index(str(cfg.index_path))
     chunks = pq.read_table(str(cfg.chunks_path))
-    print(f"[*] 加载 embedding 模型 {cfg.embedding_model}...")
-    embedder = SentenceTransformer(cfg.embedding_model, device="cpu")
+    source = "ModelScope" if cfg.from_modelscope else "HuggingFace"
+    print(f"[*] 加载 embedding 模型 {cfg.embedding_model} ({source})...")
+    embedder = load_sentence_transformer(cfg.embedding_model, cfg.from_modelscope, device="cpu")
     print(f"[*] 加载 reranker {cfg.rerank_model}...")
     reranker = CrossEncoder(cfg.rerank_model, device="cpu")
     return Resources(
@@ -93,6 +95,8 @@ def stream_answer(cfg: Config, messages: list[dict]) -> str:
     full = ""
     with requests.post(url, json=payload, stream=True, timeout=300) as r:
         r.raise_for_status()
+        # 强制使用 UTF-8，避免流式响应编码推断错误导致乱码
+        r.encoding = "utf-8"
         for line in r.iter_lines(decode_unicode=True):
             if not line or not line.startswith("data:"):
                 continue

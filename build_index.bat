@@ -1,0 +1,1 @@
+python build_index.py --input wikipedia-zh-cn.json --output-dir data --max-lines 100000 --batch-size 128 --use-modelscope

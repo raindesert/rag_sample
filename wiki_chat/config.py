@@ -19,6 +19,7 @@ class Config:
     topk_fetch: int = 50
     topk_rerank: int = 5
     history_turns: int = 3
+    from_modelscope: bool = False
 
     def __post_init__(self):
         # Always coerce to Path (so .exists() works on all platforms)
@@ -42,6 +43,12 @@ def parse_args(argv: list[str] | None = None) -> Config:
     p.add_argument("--topk-fetch", type=int, default=50)
     p.add_argument("--topk-rerank", type=int, default=5)
     p.add_argument("--history-turns", type=int, default=3)
+    p.add_argument(
+        "--from-modelscope",
+        dest="from_modelscope",
+        action="store_true",
+        help="从 ModelScope 下载 embedding 模型（默认 HuggingFace）",
+    )
     ns = p.parse_args(argv)
     return Config(
         index_path=ns.index_path,
@@ -52,4 +59,5 @@ def parse_args(argv: list[str] | None = None) -> Config:
         topk_fetch=ns.topk_fetch,
         topk_rerank=ns.topk_rerank,
         history_turns=ns.history_turns,
+        from_modelscope=ns.from_modelscope,
     )

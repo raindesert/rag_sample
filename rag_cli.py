@@ -10,7 +10,7 @@ import requests
 from sentence_transformers import CrossEncoder, SentenceTransformer
 
 from wiki_chat.config import Config, parse_args
-from wiki_chat.models import load_sentence_transformer
+from wiki_chat.models import load_cross_encoder, load_sentence_transformer
 from wiki_chat.prompts import build_messages
 
 
@@ -43,8 +43,9 @@ def load_resources(cfg: Config) -> Resources:
     source = "ModelScope" if cfg.from_modelscope else "HuggingFace"
     print(f"[*] 加载 embedding 模型 {cfg.embedding_model} ({source})...")
     embedder = load_sentence_transformer(cfg.embedding_model, cfg.from_modelscope, device="cpu")
-    print(f"[*] 加载 reranker {cfg.rerank_model}...")
-    reranker = CrossEncoder(cfg.rerank_model, device="cpu")
+    source = "ModelScope" if cfg.from_modelscope else "HuggingFace"
+    print(f"[*] 加载 reranker {cfg.rerank_model} ({source})...")
+    reranker = load_cross_encoder(cfg.rerank_model, cfg.from_modelscope, device="cpu")
     return Resources(
         cfg=cfg, index=index, chunks=chunks,
         embedder=embedder, reranker=reranker,

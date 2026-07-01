@@ -23,6 +23,19 @@ def get_model_path(model_name: str, use_modelscope: bool) -> str:
     return snapshot_download(model_name, cache_dir=cache)
 
 
+def load_cross_encoder(model_name: str, use_modelscope: bool, device: str | None = None):
+    """加载 CrossEncoder 模型，先解析本地路径（命中缓存即复用）.
+
+    device: 传给 CrossEncoder 的设备（None 则用库默认自动选择）。
+    """
+    from sentence_transformers import CrossEncoder
+
+    local_path = get_model_path(model_name, use_modelscope)
+    if device is None:
+        return CrossEncoder(local_path)
+    return CrossEncoder(local_path, device=device)
+
+
 def load_sentence_transformer(model_name: str, use_modelscope: bool, device: str | None = None):
     """加载 SentenceTransformer 模型，先解析本地路径（命中缓存即复用）.
 
